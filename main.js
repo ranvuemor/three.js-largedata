@@ -174,7 +174,7 @@ if ( WebGL.isWebGLAvailable() ) {
         //pointer.z = 0.5;
 
         raycaster.setFromCamera(pointer, camera);
-        raycaster.far = 100.0;
+        raycaster.far = 1000.0;
         // draw line from camera to the point of intersection
         
         const intersects = raycaster.intersectObjects([cube], false);

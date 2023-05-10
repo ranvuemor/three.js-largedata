@@ -1,8 +1,57 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+var sceneFirstPass, sceneSecondPass, materialSecondPass, rtTexture;
+container = document.getElementById( 'container' );
+var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.01, 3000.0 );
+camera.position.z = 2.0;
+const controls = new THREE.OrbitControls(camera, container);
+controls.enableDamping = false;
+controls.target.set(0, 0, 0);
+controls.enablePan = true;
+controls.keys = {
+	LEFT: 'ArrowLeft', //left arrow
+	UP: 'ArrowUp', // up arrow
+	RIGHT: 'ArrowRight', // right arrow
+	BOTTOM: 'ArrowDown' // down arrow
+}
+        var screenSize = new THREE.Vector2( window.innerWidth, window.innerHeight );
+				//Use NearestFilter to eliminate interpolation.  At the cube edges, interpolated world coordinates
+				//will produce bogus ray directions in the fragment shader, and thus extraneous colors.
+				rtTexture = new THREE.WebGLRenderTarget( screenSize.x, screenSize.y,
+														{ 	minFilter: THREE.NearestFilter,
+															magFilter: THREE.NearestFilter,
+															wrapS:  THREE.ClampToEdgeWrapping,
+															wrapT:  THREE.ClampToEdgeWrapping,
+															format: THREE.RGBFormat,
+															type: THREE.FloatType,
+															generateMipmaps: false} );
 
-var canvas = document.getElementsByTagName("canvas")[0];
-const logger = document.getElementById('data');
+
+				var materialFirstPass = new THREE.ShaderMaterial( {
+					vertexShader: document.getElementById( 'vertexShaderFirstPass' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShaderFirstPass' ).textContent,
+					side: THREE.BackSide
+				} );
+
+				materialSecondPass = new THREE.ShaderMaterial( {
+					vertexShader: document.getElementById( 'vertexShaderSecondPass' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShaderSecondPass' ).textContent,
+					side: THREE.FrontSide,
+					uniforms: {	tex:  { type: "t", value: rtTexture }}
+				 });
+
+				sceneFirstPass = new THREE.Scene();
+				sceneSecondPass = new THREE.Scene();
+
+				var boxGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+				boxGeometry.doubleSided = true;
+
+				var meshFirstPass = new THREE.Mesh( boxGeometry, materialFirstPass );
+				var meshSecondPass = new THREE.Mesh( boxGeometry, materialSecondPass );
+
+				sceneFirstPass.add( meshFirstPass );
+				sceneSecondPass.add( meshSecondPass );
+
+				renderer = new THREE.WebGLRenderer();
+				container.appendChild( renderer.domElement );
 const loader = new THREE.FileLoader();
 var jsonData;
 var geometry = new THREE.BufferGeometry();
@@ -35,20 +84,19 @@ loader.load('./output.json', function(data){
   }
 })
 
-var scene = new THREE.Scene();
-scene.matrixWorldAutoUpdate = true;
-const ambientLight = new THREE.AmbientLight(0xcccccc);
-scene.add(ambientLight);
-scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
-var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
-camera.position.z = 3.0;
-var renderer = new THREE.WebGLRenderer({
-  canvas: canvas,
-  antialias: true,
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0xffffff);
-document.body.appendChild(renderer.domElement);
+//var scene = new THREE.Scene();
+//scene.matrixWorldAutoUpdate = true;
+//const ambientLight = new THREE.AmbientLight(0xcccccc);
+//scene.add(ambientLight);
+//scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
+
+// var renderer = new THREE.WebGLRenderer({
+//   canvas: canvas,
+//   antialias: true,
+// });
+// renderer.setSize(window.innerWidth, window.innerHeight);
+// renderer.setClearColor(0xffffff);
+// document.body.appendChild(renderer.domElement);
 
 geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -108,16 +156,7 @@ const cube = new THREE.Mesh( box, boxmat );
 scene.add( cube );
 cube.position.set(0, 0, 0);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = false;
-controls.target.set(0, 0, 0);
-controls.enablePan = true;
-controls.keys = {
-	LEFT: 'ArrowLeft', //left arrow
-	UP: 'ArrowUp', // up arrow
-	RIGHT: 'ArrowRight', // right arrow
-	BOTTOM: 'ArrowDown' // down arrow
-}
+
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -169,12 +208,16 @@ function onMouseMove (event){
 }
 
 function render(){
-  renderer.render(scene, camera);
+  				//Render first pass and store the world space coords of the back face fragments into the texture.
+				renderer.render( sceneFirstPass, camera, rtTexture, true );
+
+				//Render the second pass and perform the volume rendering.
+				renderer.render( sceneSecondPass, camera );
 }
 
 function animate(){
   requestAnimationFrame(animate);
-  controls.update();
+  //controls.update();
   render();
 }
 

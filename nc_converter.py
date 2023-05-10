@@ -390,15 +390,6 @@ def list_empty(data, vmin=None, vmax=None):
 
 
 def nc_scan(file_path, logpath=None, variables=None, qc_vmin=None, qc_vmax=None):
-    """
-    saves information about the parameters inside the nc file to a log files at dir of file_path
-    :param file_path: file path to the .nc file
-    :param logpath: optional path for log file, defualt is same location as filepath as txt
-    :param variables: optional array filled with strings of the variables to look at. other will be skipped.
-    :param qc_vmin: optional minimum for qc list of empty arrays
-    :param qc_vmax: optional maximum for qc list of empty arrays
-    :return:
-    """
 
     # read nc file
     datastructure = nc.Dataset(file_path)

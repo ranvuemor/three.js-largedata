@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+	<head lang="en">
+		<meta charset="utf-8">
+		<title>Mesh Interaction</title>
+        		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<style>
+			body { margin: 0; }
+		</style>
+	</head>
+	<body>
+        <div id="container"></div>
+		<script type="module">
+            // import * as THREE from 'three';
+            // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+            // import { VRButton } from 'three/addons/webxr/VRButton.js';
+
+            // const scene = new THREE.Scene();
+            // scene.background = new THREE.Color( 0xf0f0ff );
+            // const light = new THREE.HemisphereLight( 0xfff0f0, 0x606066 );
+            // light.position.set( 1, 1, 1 );
+            // scene.add( light );
+
+            // //const player = new THREE.Object3D();
+            // //scene.add(player);
+            // const camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 500 );
+            // //player.add(camera);
+            // scene.add(camera);
+
+            
+            // console.log("Line: ", line.position.x, line.position.y, line.position.z);
+
+            // const renderer = new THREE.WebGLRenderer({antialias: true});
+            // renderer.setPixelRatio( window.devicePixelRatio );
+            // renderer.setSize( window.innerWidth, window.innerHeight );
+            // renderer.xr.eneabled = true;
+            // renderer.xr.setReferenceSpaceType( 'local' );
+            // document.body.appendChild( renderer.domElement );
+            // document.body.appendChild( VRButton.createButton( renderer ) );
+
+            // const controls = new OrbitControls( camera, renderer.domElement );
+            // controls.target = line.position;
+            // controls.enablePan = false;
+            // controls.update();
+
+            // window.addEventListener( 'resize', onWindowResize );
+
+            // function onWindowResize() {
+
+            //     camera.aspect = window.innerWidth / window.innerHeight;
+            //     camera.updateProjectionMatrix();
+
+            //     renderer.setSize( window.innerWidth, window.innerHeight );
+
+            // }
+
+            // function render(){
+            //     //player.lookAt((new THREE.Vector3(0, 0, 0)));
+            //     renderer.render(scene, camera);
+            // }
+
+            import * as THREE from 'three';
+            import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+			import { VRButton } from 'three/addons/webxr/VRButton.js';
+            import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+
+			let camera, scene, renderer, sphere, clock;
+
+			init();
+			animate();
+
+			function init() {
+
+				const container = document.getElementById( 'container' );
+
+				clock = new THREE.Clock();
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x101010 );
+
+				const light = new THREE.AmbientLight( 0xffffff, 1 );
+				scene.add( light );
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 2000 );
+				scene.add( camera );
+
+				const lines = new THREE.LineDashedMaterial({color: 0xffffff});
+                const points = [];
+                for (let i = 0; i < 500; i++){
+                    const x = Math.random();
+                    const y = Math.random();
+                    const z = Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = - Math.random();
+                    const y = - Math.random();
+                    const z = - Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = -Math.random();
+                    const y = Math.random();
+                    const z = Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = -Math.random();
+                    const y = -Math.random();
+                    const z = Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = -Math.random();
+                    const y = Math.random();
+                    const z = -Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = Math.random();
+                    const y = -Math.random();
+                    const z = Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = Math.random();
+                    const y = -Math.random();
+                    const z = -Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                for (let i = 0; i < 500; i++){
+                    const x = Math.random();
+                    const y = Math.random();
+                    const z = -Math.random();
+                    console.log(x, y, z);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(lineGeometry, lines);
+                scene.add(line);
+                line.position.set(0, 0, -20);
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.xr.enabled = true;
+				renderer.xr.setReferenceSpaceType( 'local' );
+				container.appendChild( renderer.domElement );
+
+				document.body.appendChild( VRButton.createButton( renderer ) );
+
+				const controls = new OrbitControls( camera, renderer.domElement );
+                controls.target = line.position;
+                controls.enablePan = false;
+                controls.update();
+
+
+                const controllerModelFactory = new XRControllerModelFactory();
+                const controller1 = renderer.xr.getController(0);
+                const controller2 = renderer.xr.getController(1);
+                const controllerGrip1 = renderer.xr.getControllerGrip(0);
+                const controllerGrip2 = renderer.xr.getControllerGrip(1);
+
+                const model1 = controllerModelFactory.createControllerModel(controllerGrip1);
+                controllerGrip1.add(model1);
+                scene.add(controllerGrip1);
+
+                const model2 = controllerModelFactory.createControllerModel(controllerGrip2);
+                controllerGrip2.add(model2);
+                scene.add(controllerGrip2);
+                
+                controller1.addEventListener('connected', (e) =>{
+                    register(e.data.gamepad);
+                    console.log(e.data.gamepad);
+                })
+
+                controller2.addEventListener('connected', (e) =>{
+                    register(e.data.gamepad);
+                    console.log(e.data.gamepad);
+                })
+
+
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				renderer.setAnimationLoop( render );
+
+			}
+
+			function render() {
+
+
+				renderer.render( scene, camera );
+
+			}
+
+            renderer.setAnimationLoop(render);
+        </script>
+	</body>
+</html>

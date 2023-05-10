@@ -3,6 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 import matplotlib.pyplot as plt
 from  mpl_toolkits.mplot3d import Axes3D
+import math
 
 # open netcdf file
 nc_file = Dataset("./Temperature4Dsubset.nc")
@@ -94,22 +95,34 @@ count = 0
 for k in range(int(len(elev))):
     for i in range(int(len(lon)/5)):
         for j in range(int(len(lat)/5)):
+            r = 6371
             x = lat[j*5]
             y = lon[i*5]
             z = elev[k]
+            x1 = r * math.cos(x) * math.cos(y)
+            y1 = r * math.cos(x) * math.sin(y)
+            if (x >= 0):
+                z1 = r * math.sin(x) + z
+            else:
+                z1 = -(r * math.sin(x) + z)
+            
             r = red[(i * len(lon) + j)*5] / 255.0
             g = green[(i * len(lon) + j)*5] / 255.0
             b = blue[(i * len(lon) + j)*5] / 255.0
             if (r != 0 and g != 0 and b != 0):
                 count += 1
-                print(x, y, z, r, g, b)
-                ax.scatter(x, y, z, c=(r, g, b))
+                print(x1, z1, y1, r, g, b)
+                #ax.scatter(x1, z1, y1, c=(r, g, b))
 
 print(count)
 # Set labels and title
-ax.set_xlabel("Latitude")
-ax.set_ylabel("Longitude")
-ax.set_zlabel("Elevation")
+for i in range(20):
+    for k in range(20):
+        ax.scatter(i-10, k-10, 10)
+
+ax.set_xlabel("x")
+ax.set_zlabel("z")
+ax.set_ylabel("y")
 ax.set_title("3D Scatter Plot of Elevation Data")
 
 plt.show()

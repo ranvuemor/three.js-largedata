@@ -9,7 +9,7 @@ scene.matrixWorldAutoUpdate = true;
 const ambientLight = new THREE.AmbientLight(0xcccccc);
 scene.add(ambientLight);
 scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/ window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth/ window.innerHeight, 0.01, 3000.0);
 const renderer = new THREE.WebGLRenderer({
   canvas: canvas,
   antialias: true,
@@ -17,11 +17,58 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = false;
+var controls = new THREE.OrbitControls( camera, renderer.domElement );
+controls.center.set( 0.0, 0.0, 0.0 );
 //controls.target.set(0, 0, 0);
 
-const material = new THREE.PointsMaterial({ vertexColors: true });
+// let uniforms = {
+//   colorB: {type: 'vec3', value: new THREE.Color(0xACB6E5)},
+//   colorA: {type: 'vec3', value: new THREE.Color(0x74ebd5)}
+// }
+
+// const shaderMaterial = new THREE.ShaderMaterial( {
+//   uniforms: uniforms,
+//   fragmentShader: fragmentShader(),
+//   vertexShader: vertexShader(),
+// });
+
+// function vertexShader() {
+//   return `
+//     varying vec3 vUv; 
+
+//     void main() {
+//       vUv = position; 
+
+//       vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+//       gl_Position = projectionMatrix * modelViewPosition; 
+//     }
+//   `
+// }
+
+// function fragmentShader(){
+//   return `
+//       uniform vec3 colorA; 
+//       uniform vec3 colorB; 
+//       varying vec3 vUv;
+
+//       void main() {
+//         gl_FragColor = vec4(mix(colorA, colorB, vUv.z), 1.0);
+//       }
+//   `
+// }
+
+const textureLoader = new THREE.TextureLoader();
+
+const assignSRGB = ( texture ) => { texture.colorSpace = THREE.SRGBColorSpace; };
+
+const sprite = textureLoader.load('./spark1.png', assignSRGB);
+const shaderMaterial = new THREE.PointsMaterial({
+  size: 0.1, 
+  map: sprite, 
+  blending: THREE.AdditiveBlending, 
+  depthTest: false, 
+  transparent: true
+})
 
 loader.load("./output.json", function(jsonData) {
   const geometry = new THREE.BufferGeometry();
@@ -43,7 +90,7 @@ loader.load("./output.json", function(jsonData) {
     if (r != 0 && g != 0 && b !=0){
         positions.push(x, y, z);
         colors.push(r, g, b);
-        sizes.push(1);
+        sizes.push(20);
     }
     
   }
@@ -51,9 +98,10 @@ loader.load("./output.json", function(jsonData) {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geometry.setAttribute( 'size', new THREE.Float32BufferAttribute( sizes, 1 ).setUsage( THREE.DynamicDrawUsage ) );
-  const points = new THREE.Points(geometry, material);
+  const points = new THREE.Points(geometry, shaderMaterial);
   scene.add(points);
   points.position.set(0, -0, -0);
+
 
   const boundingBox = new THREE.Box3().setFromPoints(geometry.attributes.position.array);
   //boundingBox.position.set(0, 0, 0);
