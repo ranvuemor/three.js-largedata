@@ -34,260 +34,290 @@
         <script type="module">
             
             import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+            import Stats from 'three/addons/libs/stats.module.js';
             const logger = document.getElementById('log');
             const loader = new THREE.FileLoader();
-            // const textureLoader = new THREE.TextureLoader();
-
-            // const assignSRGB = ( texture ) => { texture.colorSpace = THREE.SRGBColorSpace; };
-
-            // const sprite = textureLoader.load('./spark1.png', assignSRGB);
 
             const scene = new THREE.Scene();                
-            const Globe = new ThreeGlobe()
-                .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-                //.bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
 
-            function componentToHex(c) {
-                var hex = c.toString(16);
-                return hex.length == 1 ? "0" + hex : hex;
-            }
+            const earth = new ThreeGlobe()
+                .globeImageUrl('./public/earth-blue-marble.jpg')
+                .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
 
-            function rgbToHex(red, green, blue) {
-                const rgb = (red << 16) | (green << 8) | (blue << 0);
-                return '#' + (0x1000000 + rgb).toString(16).slice(1);
-            }
+            
+            try{
+                loader.load("./output_by5.json", function(jsonData) {
+                    let geometry, shaderMaterial, points, shaderSize;
+                    var positions = [];
+                    var colors = [];
+                    var sizes = [];
+                    var last;
+                    try {
+                        var data = JSON.parse(jsonData);
+                        var i = 0, j = 1, k = 0;
+                        var checkelev = 0;
+                        const EARTH_RAD = 6371;
+                        const radScale = 100 / EARTH_RAD;
+                        let check = false;
+                        for(let obj of data){
+                            k++;
+                            const lon = -1 * obj.lon;
+                            const lat = obj.lat;
+                            const elev = obj.elevation;
+                            const r = obj.red;
+                            const g = obj.green;
+                            const b = obj.blue;
+                            const phi = (90 - lat) * Math.PI / 180;
+                            const theta = (lon + 180) * Math.PI / 180;
+                            const radius = radScale * (EARTH_RAD + elev);
+                            
+                            const x = radius * Math.sin(phi) * Math.cos(theta);
+                            const y = radius * Math.cos(phi);
+                            const z = radius * Math.sin(phi) * Math.sin(theta);
+                            shaderSize = (radius * 1.0)/ 100;
+                            //console.log(radius);
+                            
+                            positions.push(x, y, z);
+                            const color = new THREE.Color(r / 255, g / 255, b / 255);
+                            colors.push(color.r, color.g, color.b);
+                            sizes.push(1);
+                            //console.log(elev, ': ', x, y, z);
+                            logger.innerText =  lat + " " + lon + " " + elev;
+                            if (checkelev !== elev){
+                                //console.log(positions.length);
+                                geometry = new THREE.BufferGeometry();
+                                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                                geometry.setAttribute( 'size', new THREE.Float32BufferAttribute( sizes, 1 ));
+                                shaderMaterial = new THREE.PointsMaterial({
+                                    size: shaderSize, 
+                                    transparent: true,
+                                    opacity: 0.5,
+                                    vertexColors: true,
+                                });
+                                points = new THREE.Points(geometry, shaderMaterial);
+                                points.position.set(0, 0, 0);
+                                points.rotation.y += Math.PI/2
+                                scene.add(points);
+                                positions.length = 0;
+                                colors.length = 0;
+                                sizes.length = 0;
+                                checkelev = elev;
+                                console.log('Rendered layer', j, elev, shaderSize);
+                                last = radius;
+                                j++;
+                            }
+                            i++;
+                            //console.log(k, data.length);
+                        }
 
-            function degToRad(degrees) {
-                return degrees * (Math.PI / 180);
-                }
-
-
-            function calcPosFromLatLonRad(rad, lat, lon) {
-
-                var spherical = new THREE.Spherical(
-                rad,
-                degToRad(90 - lon),
-                degToRad(lat)
-                );
-
-                var vector = new THREE.Vector3();
-                vector.setFromSpherical(spherical);
-
-                console.log(vector.x, vector.y, vector.z);
-                return vector;
-            }
-
-            loader.load("./output.json", function(jsonData) {
-                const geometry = new THREE.BufferGeometry();
-                const positions = [];
-                const colors = [];
-                const sizes = [];
-                var data = JSON.parse(jsonData);
-                var i = 0;
-                for(let obj of data){
-                    const R = 63.71 * 1.8;
-                    const lon = obj.lon;
-                    const lat = obj.lat;
-                    const elev = obj.elevation /1000;
-                    const r = obj.red;
-                    const g = obj.green;
-                    const b = obj.blue;
-                    if (r != 0 && g != 0 && b !=0){
-                        const pos = calcPosFromLatLonRad(elev + R, lat, lon)
-                        //positions.push(x, y, z);
-                        const color = rgbToHex(r, g, b);
-                        colors.push(color, color, color);
-                        logger.innerText =  lat + " " + lon + " " + elev * 1000;
-                          const sphere = new THREE.SphereGeometry(0.05, 3, 2, 0, Math.PI*2, 0, Math.PI);
-                          const spheremat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.5 });
-                          const sp = new THREE.Mesh(sphere, spheremat);
-                          scene.add(sp);
-                          sp.position.x = pos.x;
-                          sp.position.y = pos.y;
-                          sp.position.z = pos.z;
-                        //sizes.push(10);
                     }
-                    // else if(i % 8 == 0){
-                    //       const sphere = new THREE.SphereGeometry(0.05, 3, 2, 0, Math.PI*2, 0, Math.PI);
-                    //       const spheremat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
-                    //       const sp = new THREE.Mesh(sphere, spheremat);
-                    //       scene.add(sp);
-                    //       sp.position.x = x;
-                    //       sp.position.y = y;
-                    //       sp.position.z = z;
-                    // }
-                    i++;
+                    catch (e){
+                        console.log(e);
+                    }
+
+
+                
+                    // var guiControls = new function() {
+                    // 	this.model = 'Temperature4D';
+                    // 	this.Latitude = 70.05;
+                    // 	this.Longitude = -160.05;
+                    // 	this.Elevation = 400;
+                    // };
+
+                    // var gui = new dat.GUI();
+                    // var modelSelected = gui.add(guiControls, 'model', [ 'Temperature4D', 'Wind', 'VR' ] );
+                    // gui.add(guiControls, 'Latitude', -180.00, 180.00).step(0.05);
+                    // gui.add(guiControls, 'Longitude', -180.00, 180.00).step(0.05);
+                    // gui.add(guiControls, 'Elevation', 0, 400).step(100);
+                                    
                     
-                }
+                const renderer = new THREE.WebGLRenderer();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.getElementById('globe').appendChild(renderer.domElement);
 
+                scene.add(earth);
+                scene.add(new THREE.AmbientLight(0xcccccc));
+                scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
 
-
-                // geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                // try {
-                //     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                //     //logger.innerText = "Colored";
-                // }
-                // catch(error){
-                //     logger.innerText = error;
-                // }
-                
-                // geometry.setAttribute( 'size', new THREE.Float32BufferAttribute( sizes, 1 ).setUsage( THREE.DynamicDrawUsage ) );
-                // const shaderMaterial = new THREE.PointsMaterial({
-                //     size: 0.5, 
-                //     map: sprite, 
-                //     blending: THREE.AdditiveBlending, 
-                //     depthTest: false, 
-                //     transparent: true,
-                //     vertexColors: THREE.VertexColors
-                // })
-                // const points = new THREE.Points(geometry, shaderMaterial);
-                // //scene.add(points);
-                // points.position.set(0, -0, -0);
-            
-                var guiControls = new function() {
-					this.model = 'Temperature4D';
-					this.Latitude = 70.05;
-					this.Longitude = -160.05;
-					this.Elevation = 400;
-				};
-
-				var gui = new dat.GUI();
-				var modelSelected = gui.add(guiControls, 'model', [ 'Temperature4D', 'Wind', 'VR' ] );
-				gui.add(guiControls, 'Latitude', -180.00, 180.00).step(0.05);
-                gui.add(guiControls, 'Longitude', -180.00, 180.00).step(0.05);
-				gui.add(guiControls, 'Elevation', 0, 400).step(100);
-                                
-                
-            const renderer = new THREE.WebGLRenderer();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('globe').appendChild(renderer.domElement);
-
-            // const boundingBox = new THREE.Box3().setFromPoints(geometry.attributes.position.array);
-            // const wireframeGeometry = new THREE.Box3Helper(boundingBox, 0xffff00);
-            // wireframeGeometry.position.set(0.0, 0.0, 0.0);
-            // scene.add(wireframeGeometry);
-            //logger.innerText = "Temperatur4D";
-
-            scene.add(Globe);
-            scene.add(new THREE.AmbientLight(0xcccccc));
-            scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
-
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/ window.innerHeight, 0.1, 1000);
-            camera.aspect = window.innerWidth/window.innerHeight;
-            camera.updateProjectionMatrix();
-            camera.position.z = 400;
-
-            const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = false;
-            controls.target.set(0, 0, 0);
-            controls.enablePan = true;
-            controls.screenSpacePanning = false;
-
-            window.addEventListener('resize', onWindowResize, false)
-            function onWindowResize() {
-                camera.aspect = window.innerWidth / window.innerHeight
-                camera.updateProjectionMatrix()
-                renderer.setSize(window.innerWidth, window.innerHeight)
-                renderer.render(scene, camera);
-            }
-
-            document.addEventListener("keydown", onDocumentKeyDown, false);
-            function onDocumentKeyDown(event){
-                var keycode = event.which;
-                switch (keycode){
-                    case 82:
-                        controls.reset();
-                        camera.position.z = 4;
-                        camera.updateProjectionMatrix()
-                        renderer.render(scene,camera);
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 37:
-                        controls.target.x -= 0.5;
-                        camera.position.x -= 0.5;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 38:
-                        controls.target.y += 0.5;
-                        camera.position.y += 0.5;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 39:
-                        controls.target.x += 0.5;
-                        camera.position.x += 0.5;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 40: 
-                        controls.target.y -= 0.5;
-                        camera.position.y -= 0.5;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 73:
-                        controls.target.z -= 0.5;
-                        camera.position.z -= 0.5;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    case 79:
-                        controls.target.z += 1;
-                        camera.position.z += 1;
-                        camera.updateProjectionMatrix()
-                        logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
-                        break;
-                    default:
-                        break;
-                }
-                // switch (keycode){
-                //     case 82:
-                //         controls.reset();
-                //         camera.position.z = 4;
-                //         camera.updateProjectionMatrix()
-                //         renderer.render(scene,camera);
-                //         break;
-                //     case 37:
-                //         scene.position.x += 0.5;
-                //         break;
-                //     case 38:
-                //         scene.position.y -= 0.5;
-                //         break;
-                //     case 39:
-                //         scene.position.x -= 0.5;
-                //         break;
-                //     case 40: 
-                //         scene.position.y += 0.5;
-                //         break;
-                //     case 73:
-                //         scene.position.z += 0.5;
-                //         break;
-                //     case 79:
-                //         scene.position.z -= 0.5;
-                //         break;
-                //     default:
-                //         break;
-                // }
-            }
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth/ window.innerHeight, 0.1, 5000);
+                camera.aspect = window.innerWidth/window.innerHeight;
+                camera.updateProjectionMatrix();
+                camera.position.z = 200;
+                scene.add(camera);
                         
-            function render(){
+                let attach = new THREE.Mesh(), min, minWidth, minHeight;
+                camera.add(attach);
+                const minTexLoad = new THREE.TextureLoader();
+                const minTex = minTexLoad.load('/public/earth-blue-marble.jpg', createMin);
+                const minMat = new THREE.SpriteMaterial({map: minTex});
+                min = new THREE.Sprite(minMat);
+                function createMin(){
+                    
+                    minWidth = minMat.map.image.width;
+                    minHeight = minMat.map.image.height;
+                    
+                    min.center.set(0.0, 0.0);
+                    min.scale.set(minWidth/600, minHeight/600, 1);
+                    //console.log(window.innerWidth, window.innerHeight);
+                    const minX = renderer.domElement.clientWidth;
+                    const minY = renderer.domElement.clientHeight;
+                    //console.log(minX/192, -minY/110, minWidth, minHeight);
+                    min.position.set(minX/192, -minY/110, -10);
+                    attach.add(min)
+                }
+
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = false;
+                controls.target.set(0, 0, 0);
+                controls.enablePan = true;
+                controls.screenSpacePanning = false;
+
+                var stats = new Stats();
+                document.getElementById('globe').appendChild(stats.domElement);
+
+                window.addEventListener('resize', onWindowResize, false)
+                function onWindowResize() {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.render(scene, camera);
+                }
+
+                document.addEventListener("keydown", onDocumentKeyDown, false);
+                function onDocumentKeyDown(event){
+                    var keycode = event.which;
+                    switch (keycode){
+                        case 82:
+                            controls.reset();
+                            camera.position.z = 200;
+                            camera.updateProjectionMatrix()
+                            renderer.render(scene,camera);
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 37:
+                            controls.target.x -= 0.5;
+                            camera.position.x -= 0.5;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 38:
+                            controls.target.y += 0.5;
+                            camera.position.y += 0.5;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 39:
+                            controls.target.x += 0.5;
+                            camera.position.x += 0.5;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 40: 
+                            controls.target.y -= 0.5;
+                            camera.position.y -= 0.5;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 73:
+                            controls.target.z -= 0.5;
+                            camera.position.z -= 0.5;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        case 79:
+                            controls.target.z += 1;
+                            camera.position.z += 1;
+                            camera.updateProjectionMatrix()
+                            logger.innerText = controls.target.x + " " + controls.target.y + " " + controls.target.z;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                const raycaster = new THREE.Raycaster();
+                const pointer = new THREE.Vector2();
+
+                window.addEventListener( 'mousemove', onMouseMove, false );
+
+                const dummyGeo = new THREE.SphereGeometry(100.0001, 32, 32);
+                const dummyMat = new THREE.MeshBasicMaterial({transparent: true, opacity: 0.0, wireframe: true});
+                const dummy = new THREE.Mesh(dummyGeo, dummyMat);
+                dummy.position.copy(earth.position);
+                dummy.rotation.copy(earth.rotation);
+                scene.add(dummy);
+                            
+                const sphereGeometry = new THREE.SphereGeometry( 0.5, 32, 32 );
+                const sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.visible = false;
+                scene.add(sphere);
+
+                let intersects, lon, lat, xOnMap, yOnMap;
+                const sphereMapGeo = new THREE.SphereGeometry(0.0075, 32, 32);
+                const sphereMap = new THREE.Mesh(sphereMapGeo, sphereMaterial);
+                //sphereMap.visible = false;
+                min.add(sphereMap);
+
+                function onMouseMove (event){
+                    pointer.x = (event.clientX/window.innerWidth)*2-1;
+                    pointer.y = -(event.clientY/window.innerHeight)*2+1;
+
+                    raycaster.setFromCamera(pointer, camera);
+                    
+                    intersects = raycaster.intersectObjects([points, dummy], false);
+                    if (intersects.length > 0){
+                        sphere.position.copy(intersects[0].point);
+                        sphere.visible = true;
+                        //console.log("Sphere visible.");
+
+                        const x = sphere.position.x;
+                        const y = sphere.position.y;
+                        const z = sphere.position.z;
+
+                        const rad = Math.sqrt(x*x + y*y + z*z);
+
+                        const normX = x / rad;
+                        const normY = y / rad;
+                        const normZ = z / rad;
+
+                        lat = Math.asin(normY) * (180 / Math.PI);
+                        lon = Math.atan2(normX, normZ) * (180 / Math.PI);
+
+                        xOnMap = (lon + 180) / 360;
+                        yOnMap = (lat + 90) / 180;
+
+                        sphereMap.position.x = xOnMap;
+                        sphereMap.position.y = yOnMap;
+                        sphereMap.position.z = 0;
+                        
+                        sphereMap.visible;
+                        //console.log(sphereMap.position.x, sphereMap.position.y, sphereMap.position.z);
+                        //console.log(min.position.x, min.position.y, min.position.z);
+                    }
+                    else{
+                        sphere.visible = false;
+                        
+                    }
+                }
+                            
+                function render(){
+                    renderer.render(scene, camera);
+                }
                 
-                renderer.render(scene, camera);
-            }
-            
-            
-
-            (function animate(){
-                //logger.innerText += "\n" + Globe.position.x + " " + Globe.position.y + " " + Globe.position.z;
-                requestAnimationFrame(animate);
-                render();
-                controls.update();
-            })();
-            })
-            
-
-
+                (function animate(){
+                    //logger.innerText += "\n" + Globe.position.x + " " + Globe.position.y + " " + Globe.position.z;
+                    requestAnimationFrame(animate);
+                    render();
+                    controls.update();
+                    stats.update();
+                })();
+                })
+                }   
+            catch(e){
+                console.log(e);
+            }         
         </script>
 
     </body>

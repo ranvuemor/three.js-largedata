@@ -6,18 +6,18 @@ from  mpl_toolkits.mplot3d import Axes3D
 import math
 
 # open netcdf file
-nc_file = Dataset("./Temperature4Dsubset.nc")
+nc_file = Dataset("./Temperature4D.nc")
 
 # get variable arrays
-# red = nc_file.variables["red"][:]
-# green = nc_file.variables["green"][:]
-# blue = nc_file.variables["blue"][:]
-# elev = np.array(nc_file.variables["elev"][:])
-# lat = np.array(nc_file.variables["Lat"][:])
-# lon = np.array(nc_file.variables["Lon"][:])
+red = nc_file.variables["red"][:]
+green = nc_file.variables["green"][:]
+blue = nc_file.variables["blue"][:]
+elev = np.array(nc_file.variables["elev"][:])
+lat = np.array(nc_file.variables["Lat"][:])
+lon = np.array(nc_file.variables["Lon"][:])
 
 # create a list of dictionaries with grouped data
-# data_list = []
+data_list = []
 # for i, e in enumerate(elev):
 #     for j, ln in enumerate(lon):
 #         for k, lt in enumerate(lat):
@@ -34,21 +34,62 @@ nc_file = Dataset("./Temperature4Dsubset.nc")
 
 #print(len(elev), len(lat), len(lon), len(red))
 
+count = 0
+empty = 0
+index = 1
+
+### Use this to reduce the resolution
+
 # for i in range(len(elev)):
-#     for j in range(len(lon)):
-#         for k in range(len(lat)):
-#             data_dict = {
-#                 "elevation": float(elev[i]),
-#                 "lon": float(lon[j]),
-#                 "lat": float(lat[k]),
-#                 "red": float(red[i][j][k]),
-#                 "green": float(green[i][j][k]),
-#                 "blue": float(blue[i][j][k]),
-#             }
+#     for j in range(int(len(lon)/5)):
+#         for k in range(int(len(lat)/5)):
+#             if (red[i][j*5][k*5] != 0 and green[i][j*5][k*5] != 0 and blue[i][j*5][k*5] != 0):
+#                 data_dict = {
+#                     "elevation": float(elev[i]),
+#                     "lon": float(lon[j*5]),
+#                     "lat": float(lat[k*5]),
+#                     "red": float(red[i][j*5][k*5]),
+#                     "green": float(green[i][j*5][k*5]),
+#                     "blue": float(blue[i][j*5][k*5]),
+#                 }
+#                 print(data_dict)
+#                 count += 1
+#                 data_list.append(data_dict)
+#             else:
+#                 empty += 1
+
+# print("Count: ", count, "Empty: ", empty)
+
+# # write data to json file
+# with open("output_by5.json", "w") as outfile:
+#     json.dump(data_list, outfile)
+
+### Use this for full resolution
+
+for i in range(len(elev)):
+    for j in range(len(lon)):
+        for k in range(len(lat)):
+            if (red[i][j][k] != 0 and green[i][j][k] != 0 and blue[i][j][k] != 0):
+                data_dict = {
+                    "elevation": float(elev[i]),
+                    "lon": float(lon[j]),
+                    "lat": float(lat[k]),
+                    "red": float(red[i][j][k]),
+                    "green": float(green[i][j][k]),
+                    "blue": float(blue[i][j][k]),
+                }
+                print(index, data_dict)
+                count += 1
+                data_list.append(data_dict)
+            else:
+                empty += 1
+            index += 1
+
+print('Count: ', count, 'Empty: ', empty, 'Elevations: ', len(elev))
 
 # write data to json file
-# with open("output.json", "w") as outfile:
-#     json.dump(data_list, outfile)
+with open("output_fullRes.json", "w") as outfile:
+    json.dump(data_list, outfile)
 
 
 
@@ -79,52 +120,52 @@ nc_file = Dataset("./Temperature4Dsubset.nc")
 
 # plt.show()
 
-elev = nc_file.variables["elev"][:]
-lat = nc_file.variables["Lat"][:]
-lon = nc_file.variables["Lon"][:]
-red = nc_file.variables["red"][:].flatten()
-green = nc_file.variables["green"][:].flatten()
-blue = nc_file.variables["blue"][:].flatten()
+# elev = nc_file.variables["elev"][:]
+# lat = nc_file.variables["Lat"][:]
+# lon = nc_file.variables["Lon"][:]
+# red = nc_file.variables["red"][:].flatten()
+# green = nc_file.variables["green"][:].flatten()
+# blue = nc_file.variables["blue"][:].flatten()
 
-# Create 3D plot
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-count = 0
+# # Create 3D plot
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection="3d")
+# count = 0
 
-# Plot the points with colors based on RGB values
-for k in range(int(len(elev))):
-    for i in range(int(len(lon)/5)):
-        for j in range(int(len(lat)/5)):
-            r = 6371
-            x = lat[j*5]
-            y = lon[i*5]
-            z = elev[k]
-            x1 = r * math.cos(x) * math.cos(y)
-            y1 = r * math.cos(x) * math.sin(y)
-            if (x >= 0):
-                z1 = r * math.sin(x) + z
-            else:
-                z1 = -(r * math.sin(x) + z)
+# # Plot the points with colors based on RGB values
+# for k in range(int(len(elev))):
+#     for i in range(int(len(lon)/5)):
+#         for j in range(int(len(lat)/5)):
+#             r = 6371
+#             x = lat[j*5]
+#             y = lon[i*5]
+#             z = elev[k]
+#             x1 = r * math.cos(x) * math.cos(y)
+#             y1 = r * math.cos(x) * math.sin(y)
+#             if (x >= 0):
+#                 z1 = r * math.sin(x) + z
+#             else:
+#                 z1 = -(r * math.sin(x) + z)
             
-            r = red[(i * len(lon) + j)*5] / 255.0
-            g = green[(i * len(lon) + j)*5] / 255.0
-            b = blue[(i * len(lon) + j)*5] / 255.0
-            if (r != 0 and g != 0 and b != 0):
-                count += 1
-                print(x1, z1, y1, r, g, b)
-                #ax.scatter(x1, z1, y1, c=(r, g, b))
+#             r = red[(i * len(lon) + j)*5] / 255.0
+#             g = green[(i * len(lon) + j)*5] / 255.0
+#             b = blue[(i * len(lon) + j)*5] / 255.0
+#             if (r != 0 and g != 0 and b != 0):
+#                 count += 1
+#                 print(x1, z1, y1, r, g, b)
+#                 #ax.scatter(x1, z1, y1, c=(r, g, b))
 
-print(count)
-# Set labels and title
-for i in range(20):
-    for k in range(20):
-        ax.scatter(i-10, k-10, 10)
+# print(count)
+# # Set labels and title
+# for i in range(20):
+#     for k in range(20):
+#         ax.scatter(i-10, k-10, 10)
 
-ax.set_xlabel("x")
-ax.set_zlabel("z")
-ax.set_ylabel("y")
-ax.set_title("3D Scatter Plot of Elevation Data")
+# ax.set_xlabel("x")
+# ax.set_zlabel("z")
+# ax.set_ylabel("y")
+# ax.set_title("3D Scatter Plot of Elevation Data")
 
-plt.show()
+# plt.show()
 
 
