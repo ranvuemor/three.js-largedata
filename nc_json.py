@@ -40,43 +40,19 @@ index = 1
 
 ### Use this to reduce the resolution
 
-# for i in range(len(elev)):
-#     for j in range(int(len(lon)/5)):
-#         for k in range(int(len(lat)/5)):
-#             if (red[i][j*5][k*5] != 0 and green[i][j*5][k*5] != 0 and blue[i][j*5][k*5] != 0):
-#                 data_dict = {
-#                     "elevation": float(elev[i]),
-#                     "lon": float(lon[j*5]),
-#                     "lat": float(lat[k*5]),
-#                     "red": float(red[i][j*5][k*5]),
-#                     "green": float(green[i][j*5][k*5]),
-#                     "blue": float(blue[i][j*5][k*5]),
-#                 }
-#                 print(data_dict)
-#                 count += 1
-#                 data_list.append(data_dict)
-#             else:
-#                 empty += 1
-
-# print("Count: ", count, "Empty: ", empty)
-
-# # write data to json file
-# with open("output_by5.json", "w") as outfile:
-#     json.dump(data_list, outfile)
-
-### Use this for full resolution
+res = 2
 
 for i in range(len(elev)):
-    for j in range(len(lon)):
-        for k in range(len(lat)):
-            if (red[i][j][k] != 0 and green[i][j][k] != 0 and blue[i][j][k] != 0):
+    for j in range(int(len(lon)/res)):
+        for k in range(int(len(lat)/res)):
+            if (red[i][j*res][k*res] != 0 and green[i][j*res][k*res] != 0 and blue[i][j*res][k*res] != 0):
                 data_dict = {
                     "elevation": float(elev[i]),
-                    "lon": float(lon[j]),
-                    "lat": float(lat[k]),
-                    "red": float(red[i][j][k]),
-                    "green": float(green[i][j][k]),
-                    "blue": float(blue[i][j][k]),
+                    "lon": float(lon[j*res]),
+                    "lat": float(lat[k*res]),
+                    "red": float(red[i][j*res][k*res]),
+                    "green": float(green[i][j*res][k*res]),
+                    "blue": float(blue[i][j*res][k*res]),
                 }
                 print(index, data_dict)
                 count += 1
@@ -85,11 +61,38 @@ for i in range(len(elev)):
                 empty += 1
             index += 1
 
-print('Count: ', count, 'Empty: ', empty, 'Elevations: ', len(elev))
+print("Count: ", count, "Empty: ", empty)
 
 # write data to json file
-with open("output_fullRes.json", "w") as outfile:
+with open("output_by2.json", "w") as outfile:
     json.dump(data_list, outfile)
+
+### Use this for full resolution
+
+# for i in range(len(elev)):
+#     for j in range(len(lon)):
+#         for k in range(len(lat)):
+#             if (red[i][j][k] != 0 and green[i][j][k] != 0 and blue[i][j][k] != 0):
+#                 data_dict = {
+#                     "elevation": float(elev[i]),
+#                     "lon": float(lon[j]),
+#                     "lat": float(lat[k]),
+#                     "red": float(red[i][j][k]),
+#                     "green": float(green[i][j][k]),
+#                     "blue": float(blue[i][j][k]),
+#                 }
+#                 print(index, data_dict)
+#                 count += 1
+#                 data_list.append(data_dict)
+#             else:
+#                 empty += 1
+#             index += 1
+
+# print('Count: ', count, 'Empty: ', empty, 'Elevations: ', len(elev))
+
+# # write data to json file
+# with open("output_fullRes.json", "w") as outfile:
+#     json.dump(data_list, outfile)
 
 
 

@@ -9,9 +9,6 @@
 				height: 100vh;
 				padding: 0;
 				margin: 0;
-                background-image: url("./public/background.jpg");
-                background-repeat:no-repeat;
-                background-position: center center;
 			}
             #log {
                 position: absolute;
@@ -21,18 +18,8 @@
                 border-radius: 3px;
                 background-color: rgba(200, 200, 200, 0.1);
                 color: lavender;
-                text-shadow: 0 0 2px; 
                 bottom: 10px;
                 right: 10px;
-            }
-            #loading {
-                position: absolute;
-                font-size: 36px;
-                font-family: serif;
-                top: 50%;
-                left: 50%;
-                color: white;
-                transform: translate(-50%, -50%);
             }
 		</style>
         <script src="//unpkg.com/satellite.js/dist/satellite.min.js"></script>
@@ -41,7 +28,6 @@
 		<script src="./dat.gui.min.js"></script>
     </head>
     <body>
-        <div id="loading"><p>Loading...</p></div>
         <div id="globe"></div>
         <div id="log"></div>
         <script type="importmap">{ "imports": { "three": "https://unpkg.com/three/build/three.module.js" }}</script>
@@ -61,14 +47,13 @@
             const earth = new ThreeGlobe()
                 .globeImageUrl('./public/earth-blue-marble.jpg')
                 .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
-                .showGraticules(true)
 
-            document.getElementById("loading").style.display = "block";
+            
             try{
                 loader.load("./output_by5.json", function(jsonData) {
                     let geometry, shaderMaterial, points = [], shaderSize;
                     var positions = [];
-                    var colors = [], colorsInit = [];
+                    var colors = [];
                     var sizes = [];
                     var last;
                     try {
@@ -78,8 +63,6 @@
                         const EARTH_RAD = 6371;
                         const radScale = 100 / EARTH_RAD;
                         let check = false;
-                        colors[j-1] = [];
-                        colorsInit[j-1] = [];
                         for(let obj of data){
                             k++;
                             const lon = -1 * obj.lon;
@@ -100,13 +83,7 @@
                             
                             positions.push(x, y, z);
                             const color = new THREE.Color(r / 255, g / 255, b / 255);
-                            
-                            colors[j-1].push(color.r);
-                            colors[j-1].push(color.g);
-                            colors[j-1].push(color.b);
-                            colorsInit[j-1].push(color.r);
-                            colorsInit[j-1].push(color.g);
-                            colorsInit[j-1].push(color.b);
+                            colors.push(color.r, color.g, color.b);
                             sizes.push(1);
                             //console.log(elev, ': ', x, y, z);
                             logger.innerText =  lat + " " + lon + " " + elev;
@@ -114,7 +91,7 @@
                                 //console.log(positions.length);
                                 geometry = new THREE.BufferGeometry();
                                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors[j-1], 3));
+                                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
                                 geometry.setAttribute( 'size', new THREE.Float32BufferAttribute( sizes, 1 ));
                                 shaderMaterial = new THREE.PointsMaterial({
                                     size: shaderSize, 
@@ -133,92 +110,71 @@
                                 console.log('Rendered layer', j, elev, shaderSize);
                                 last = radius;
                                 j++;
-                                colors[j-1] = [];
-                                colorsInit[j-1] = [];
-                                //console.log("Starting in colors: ", j);
                             }
-                            //console.log("Pushing in colors: ", j);
                             i++;
                             //console.log(k, data.length);
                         }
-                        console.log("loaded");
-                        document.getElementById("loading").style.display = "none";
 
                     }
                     catch (e){
                         console.log(e);
                     }
 
-                var redInit = [], greenInit = [], blueInit = [], opaInit = [], sizeInit = [], visInit = [], grayScaleN = [];
+                var redInit = [], greenInit = [], blueInit = [], opaInit = [], sizeInit = [], visInit = [];
                 var redN = [], greenN = [], blueN = []; 
+                // var guiControls = [], gui = [], pointsFolder = [];
+                // var redC = [], greenC = [], blueC = [], tranC = [], sizeC = [], gradeSelected = [], visible = [];
 
                 var layers = {};
+
                 for (let i = 0; i < points.length; i++){
                     redInit[i] = points[i].material.color.r;
                     greenInit[i] = points[i].material.color.g;
                     blueInit[i] = points[i].material.color.b;
                     opaInit[i] = points[i].material.opacity;
                     sizeInit[i] = points[i].material.size;
-                    visInit[i] = points[i].material.visible;
-                    grayScaleN[i] = false;
+                    visInit[i] = points[i].visible;
                     redN[i] = 1.00;
                     greenN[i] = 1.00;
                     blueN[i] = 1.00;
                     var optionKey = 'Layer ' + (i+1);
                     var optionLabel = 'Layer ' + (i+1) ;
                     layers[optionKey] = optionLabel;
-                    //console.log(redInit[i], greenInit[i], blueInit[i], sizeInit[i], visInit[i], redN[i], greenN[i], blueN[i], grayScaleN[i]);
+                    console.log(redInit[i], greenInit[i], blueInit[i], sizeInit[i], redN[i], greenN[i], blueN[i]);
                 }
 
-                var selectedOption = 'Select a layer';
-                var toLat = 0.00, toLan = 0.00;
+                var selectedOption = Object.keys(layers)[0];
 
                 var guiControls = {
-                    selectedOption: selectedOption,
-                    flyToLat: toLat,
-                    flyToLan: toLan
+                    selectedOption: selectedOption
                 };
 
                 var gui = new dat.GUI();
 
-                var layerControl = gui.add(guiControls, 'selectedOption', layers).name('Open Layer');
-                var flyLanControl = gui.add(guiControls, 'flyToLat', -90.00, 90.00).step(0.05).name('Latitude');
-                var flyLatControl = gui.add(guiControls, 'flyToLan', -180.00, 180.00).step(0.05).name('Longitude');
-
-                flyLanControl.onChange(function(value){
-                    toLat = value;
-                    sptocar(toLan, toLat);
-                });
-
-                flyLatControl.onChange(function(value){
-                    toLan = value;
-                    sptocar(toLan, toLat);
-                });
+                var layerControl = gui.add(guiControls, 'selectedOption', layers);
 
                 var guiControlsLayer, guiLayer;
 
                 layerControl.onChange(function(value){
-                    console.log('Open layer: ', value);
-                    const j = (parseInt(value.split(' ')[1], 10) - 1);
+                    console.log('Selected layer: ', value);
+                    const j = parseInt(optionLabel.split(' ')[1], 10);
+                    console.log(j*1);
                     guiControlsLayer = new function(){
                         this.Red = redN[j];
                         this.Green = greenN[j];
                         this.Blue = blueN[j];
                         this.Transparency = opaInit[j];
                         this.Size = sizeInit[j];
-                        this.Visible = visInit[j];
-                        this.Grayscale = grayScaleN[j];
+                        this.visible = visInit[j];
                     };
 
                     guiLayer = new dat.GUI();
-                    const layerfolder = guiLayer.addFolder('Layer ' + (j+1));
-                    var redC = layerfolder.add(guiControlsLayer, 'Red', 0.00, 2.00).step(0.05);
-                    var greenC = layerfolder.add(guiControlsLayer, 'Green', 0.00, 2.00).step(0.05);
-                    var blueC = layerfolder.add(guiControlsLayer, 'Blue', 0.00, 2.00).step(0.05);
-                    var tranC = layerfolder.add(guiControlsLayer, 'Transparency', 0.00, 1.00).step(0.05);
-                    var sizeC = layerfolder.add(guiControlsLayer, 'Size', 0.01, 3.00).step(0.05);
-                    var visC = layerfolder.add(guiControlsLayer, 'Visible');
-                    var grayScaleC = layerfolder.add(guiControlsLayer, 'Grayscale');
+                    var redC = guiLayer.add(guiControlsLayer, 'Red', 0.00, 2.00).step(0.05);
+                    var greenC = guiLayer.add(guiControlsLayer, 'Green', 0.00, 2.00).step(0.05);
+                    var blueC = guiLayer.add(guiControlsLayer, 'Blue', 0.00, 2.00).step(0.05);
+                    var tranC = guiLayer.add(guiControlsLayer, 'Transparency', 0.00, 1.00).step(0.05);
+                    var sizeC = guiLayer.add(guiControlsLayer, 'Size', sizeInit[j] - 0.50, sizeInit[i] + 0.50).step(0.05);
+                    var visC = guiLayer.add(guiControlsLayer, 'Visible');
                     redC.onChange(function(value){
                         points[j].material.color.r = redInit[j] * value;
                         redN[j] = value;
@@ -247,47 +203,78 @@
 
                     visC.onChange(function(value){
                         if (true){
-                            points[j].material.visible = !points[j].material.visible;
+                            points.visible = true;
+                        }
+                        else if (false){
+                            points.visible = false;
                         }
                     });
+                })
 
-                    grayScaleC.onChange(function(value){
-                        if (value){
-                            const colorAttribute = points[j].geometry.getAttribute('color');
-                            const colorsN = colorAttribute.array;
-                            const numColors = colorAttribute.count;
-                            for (let k = 0; k < numColors; k++){
-                                const r = colorsN[k * 3];
-                                const g = colorsN[k * 3 + 1];
-                                const b = colorsN[k * 3 + 2];
-                                const avg = (r + g + b) / 3;
-                                colorsN[k * 3] = avg;
-                                colorsN[k * 3 + 1] = avg;
-                                colorsN[k * 3 + 2] = avg;
+                // for (let i = 0; i < points.length; i++){
 
-                            }
-                            colorAttribute.needsUpdate = true;
-                        }
-                        else if (!value){
-                            //console.log("Coloring back");
-                            const colorAttribute = points[j].geometry.getAttribute('color');
-                            const colorsN = colorAttribute.array;
-                            const numColors = colorAttribute.count;
-                            for (let k = 0; k < numColors; k++){
-                                const r = colorsInit[j][k * 3];
-                                const g = colorsInit[j][k * 3 + 1];
-                                const b = colorsInit[j][k * 3 + 2];
-                                //const avg = (r + g + b) / 3;
-                                colorsN[k * 3] = r;
-                                colorsN[k * 3 + 1] = g;
-                                colorsN[k * 3 + 2] = b;
 
-                            }
-                            colorAttribute.needsUpdate = true;
-                            //console.log("Colored");
-                        }
-                    });
-                });
+                //     redInit[i] = points[i].material.color.r;
+                //     greenInit[i] = points[i].material.color.g;
+                //     blueInit[i] = points[i].material.color.b;
+                //     opaInit[i] = points[i].material.opacity;
+                //     sizeInit[i] = points[i].material.size;
+
+                //     guiControls[i] = new function() {
+                //         this.Grade = 'Normal';
+                //         this.Red = 1.00;
+                //         this.Green = 1.00;
+                //         this.Blue = 1.00;
+                //         this.Transparency = opaInit[i];
+                //         this.Size = sizeInit[i];
+                //         this.Visible = true;
+                //     };
+                    
+
+                //     gui[i] = new dat.GUI();
+                //     pointsFolder[i] = gui[i].addFolder('Layer' + i+1);
+                //     gradeSelected = pointsFolder[i].add(guiControls[i], 'Grade', [ 'Normal', 'Grayscale' ] );
+                //     redC[i] = pointsFolder[i].add(guiControls[i], 'Red', 0.00, 2.00).step(0.05);
+                //     greenC[i] = pointsFolder[i].add(guiControls[i], 'Green', 0.00, 2.00).step(0.05);
+                //     blueC[i] = pointsFolder[i].add(guiControls[i], 'Blue', 0.00, 2.00).step(0.05);
+                //     tranC[i] = pointsFolder[i].add(guiControls[i], 'Transparency', 0.01, 1.00).step(0.05);
+                //     sizeC[i] = pointsFolder[i].add(guiControls[i], 'Size', sizeInit[i] - 0.50, sizeInit[i] + 0.50).step(0.05);
+                //     visible[i] = pointsFolder[i].add(guiControls[i], 'Visible');
+                                        
+                //     redC[i].onChange(function(value){
+                //         points[i].material.color.r = redInit[i] * value;
+                //         //console.log("Red: " + points.material.color.r);
+                //     });
+
+                //     greenC[i].onChange(function(value){
+                //         points[i].material.color.g = greenInit[i] * value;
+                //         //console.log("Green: " + points.material.color.g);
+                //     });
+
+                //     blueC[i].onChange(function(value){
+                //         points[i].material.color.b = blueInit[i] * value;
+                //         //console.log("Blue: " + points.material.color.b);
+                //     });
+
+                //     tranC[i].onChange(function(value){
+                //         points[i].material.opacity = 1 - value;
+                //     });
+
+                //     sizeC[i].onChange(function(value){
+                //         points[i].material.size = value;
+                //     });
+
+                //     visible[i].onChange(function(value){
+                //         if (true){
+                //             points.visible = true;
+                //         }
+                //         else if (false){
+                //             points.visible = false;
+                //         }
+                //     });
+                // }
+
+                
 
                 const renderer = new THREE.WebGLRenderer();
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -325,7 +312,7 @@
                     min.scale.set(minWidth/600, minHeight/600, 1);
                     const minX = window.innerWidth;
                     const minY = window.innerHeight;
-                    //console.log(minX, minY);
+                    console.log(minX, minY);
                     min.position.set(minX/194, -minY/120, -10);
                 }
 
@@ -334,24 +321,6 @@
                 controls.target.set(0, 0, 0);
                 controls.enablePan = true;
                 controls.screenSpacePanning = false;
-
-                function sptocar(lan, lat){
-                    const lanN = -1 * (lan + 90);
-                    const latN = -1 * lat;
-                    const phiN = (90 - latN) * Math.PI / 180;
-                    const thetaN = (lanN + 180) * Math.PI / 180;
-                    const radiusN = 200;
-                    
-                    const xN = radiusN * Math.sin(phiN) * Math.cos(thetaN);
-                    const yN = radiusN * Math.cos(phiN);
-                    const zN = radiusN * Math.sin(phiN) * Math.sin(thetaN);
-                    camera.position.x = xN;
-                    camera.position.y = yN;
-                    camera.position.z = zN;
-                    console.log(xN, yN, zN);
-                    camera.lookAt(0, 0, 0);
-                    camera.updateProjectionMatrix();
-                }
 
                 var stats = new Stats();
                 document.getElementById('globe').appendChild(stats.domElement);
@@ -422,12 +391,12 @@
 
                 window.addEventListener( 'mousemove', onMouseMove, false );
 
-                // const dummyGeo = new THREE.SphereGeometry(101, 32, 32);
-                // const dummyMat = new THREE.MeshBasicMaterial({transparent: true, opacity: 0.0});
-                // const dummy = new THREE.Mesh(dummyGeo, dummyMat);
-                // dummy.position.copy(earth.position);
-                // dummy.rotation.copy(earth.rotation);
-                // scene.add(dummy);
+                const dummyGeo = new THREE.SphereGeometry(101, 32, 32);
+                const dummyMat = new THREE.MeshBasicMaterial({transparent: true, opacity: 0.0, wireframe: true});
+                const dummy = new THREE.Mesh(dummyGeo, dummyMat);
+                dummy.position.copy(earth.position);
+                dummy.rotation.copy(earth.rotation);
+                scene.add(dummy);
                             
                 const sphereGeometry = new THREE.SphereGeometry( 0.5, 32, 32 );
                 const sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
@@ -444,16 +413,10 @@
                 function onMouseMove (event){
                     pointer.x = (event.clientX/window.innerWidth)*2-1;
                     pointer.y = -(event.clientY/window.innerHeight)*2+1;
-                    console.log(camera.position.x, camera.position.y, camera.position.z);
+
                     raycaster.setFromCamera(pointer, camera);
                     
-                    for (let i = 0; i < points.length; i++){
-                        intersects = raycaster.intersectObjects([points[i]], false);
-                        if (intersects.length > 0){
-                            break;
-                        }
-                    }
-                    
+                    intersects = raycaster.intersectObjects([dummy], false);
                     if (intersects.length > 0){
                         sphere.position.copy(intersects[0].point);
                         sphere.visible = true;
